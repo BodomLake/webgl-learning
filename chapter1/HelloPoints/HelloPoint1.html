@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="x-shader/x-vertex" id="vShader">
+    attribute vec4 a_Position;
+    attribute vec4 b_Position;
+
+    void main() {
+      //      gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_Position = a_Position;
+      gl_PointSize = 100.0;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fShader">
+    precision mediump float;
+    precision lowp float;
+    precision highp float;
+    uniform vec4 u_FragColor;
+    void main () {
+      //      gl_FragColor = vec4(0.4, 0.1, 0.2, 0.9);
+      gl_FragColor = u_FragColor;
+    }
+  </script>
+</head>
+
+<body style="margin: 0px;background-color: gainsboro">
+<canvas id="webgl" width="400" height="600"></canvas>
+
+<script src="../../lib/webgl-utils.js"></script>
+<script src="../../lib/webgl-debug.js"></script>
+<script src="../../lib/cuon-utils.js"></script>
+
+<!--<script src="js/HelloPoint.js"></script>-->
+
+<script>
+
+  function main() {
+    let canvas = document.getElementById('webgl')
+    let gl = getWebGLContext(canvas)
+
+    if (!gl) {
+      console.log("failed to get rendering context for WebGL")
+    }
+
+    console.log("rendering context for WebGL has been loaded")
+
+    let VSHADER_SOURCE = document.getElementById('vShader').innerText
+    let FSHADER_SOURCE = document.getElementById('fShader').innerText
+
+    if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+      console.log('Failed to init shaders')
+      return;
+    }
+
+    let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    let b_Position = gl.getAttribLocation(gl.program, 'b_Position')
+    console.log(a_Position);
+    console.log(b_Position);
+
+
+    // 设置该attribute变量的位置 three float == 3f
+    gl.vertexAttrib3f(a_Position, 0.0, 0.0, 0.0)
+    // gl.vertexAttrib3f(b_Position, 0.0, 0.0, 0.0)
+
+    let u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor')
+    gl.uniform4f(u_FragColor, 0.4, 0.1, 0.2, 0.9)
+
+    // 渲染器 重新设置 背景色
+    gl.clearColor(0.5, 0.2, 0.2, 0.8)
+
+    // 清空<canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.drawArrays(gl.POINTS, 0, 10)
+
+    console.log(gl)
+  }
+
+  main()
+
+</script>
+</body>
+
+</html>

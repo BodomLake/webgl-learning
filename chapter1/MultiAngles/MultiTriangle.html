@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="x-shader/x-vertex" id="vShader">
+    attribute vec4 a_Position;
+    uniform vec4 u_Translation;
+    void main() {
+      //      gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_Position = a_Position + u_Translation;
+      gl_PointSize = 5.0;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fShader">
+    precision mediump float;
+    uniform vec4 u_FragColor;
+    void main () {
+      //      gl_FragColor = vec4(0.4, 0.1, 0.2, 0.9);
+      gl_FragColor = u_FragColor;
+    }
+  </script>
+</head>
+
+<body style="margin: 0px;background-color: gainsboro">
+<canvas id="webgl" width="400" height="600"></canvas>
+
+<script src="../../lib/webgl-utils.js"></script>
+<script src="../../lib/webgl-debug.js"></script>
+<script src="../../lib/cuon-utils.js"></script>
+
+<!--<script src="js/HelloPoint.js"></script>-->
+
+<script>
+
+  function main() {
+    let canvas = document.getElementById('webgl')
+    let gl = getWebGLContext(canvas)
+
+
+    let Tx = 0.2;
+    let Ty = 0.2;
+    let Tz = 0.0;
+
+    if (!gl) {
+      console.log("failed to get rendering context for WebGL ..")
+    }
+
+    console.log("%c Rendering context for WebGL has been loaded!!", "color:black;background-color:skyblue", "")
+
+    let VSHADER_SOURCE = document.getElementById('vShader').innerText
+    let FSHADER_SOURCE = document.getElementById('fShader').innerText
+
+    if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+      console.log('Failed to init shaders')
+      return;
+    }
+
+    // 获取 aPos
+    let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+
+
+    // 设置该attribute变量的位置 three float == 3f
+    // gl.vertexAttrib3f(a_Position, 0.0, 0.0, 0.0)
+    // gl.vertexAttrib3f(b_Position, 0.0, 0.0, 0.0)
+
+    // 给着色器上色
+    let u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor')
+    gl.uniform4f(u_FragColor, 0.4, 0.8, 0.2, 0.8)
+
+    // 获取 u_Trans
+    let u_Translation = gl.getUniformLocation(gl.program, 'u_Translation')
+    gl.uniform4f(u_Translation, Tx, Ty, Tz, 0.0)
+
+
+    // 渲染器renderer 重新设置 背景色
+    gl.clearColor(0.5, 0.2, 0.2, 0.8)
+
+    // 清空<canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    // 顶点数据
+    // let vertices = new Float32Array(
+    //   [0.0, 0.5, -0.5, 0.5, 0.5, -0.5]
+    // )
+    let vertices = new Float32Array(
+      [0.0, 0.5, -0.5, 0.5, 0.5, -0.5]
+    )
+
+    let n = initVertexBuffer(gl, vertices)
+
+    // gl.drawArrays(gl.POINTS, 0, n)
+    // gl.drawArrays(gl.LINES, 0, n)
+    gl.drawArrays(gl.LINE_LOOP, 0, n)
+    // gl.drawArrays(gl.LINE_STRIP, 0, n)
+    // gl.drawArrays(gl.TRIANGLE_FAN, 0, n)
+    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, n)
+
+    console.log(gl)
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL context
+   */
+  function initVertexBuffer(gl, vertices) {
+    let n = Math.floor(vertices.length / 2)
+    // 创建webgl缓冲区
+    let vertexBuffer = gl.createBuffer();
+    // 并且绑定对象到缓冲区里
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    // 绑定对象
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+    let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    // 把gl.ARRAY_BUFFER（vertexBuffer）缓冲区对象 分配给 location 指定的 attribute
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0)
+    // 连接 a_Position 和 vertexBuffer，让 着色器 能够访问 绑定好了的bufferData
+    gl.enableVertexAttribArray(a_Position)
+
+    return n
+  }
+
+  main()
+
+</script>
+</body>
+
+</html>
