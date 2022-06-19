@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="x-shader/x-vertex" id="vShader">
+    attribute vec4 a_Position;
+    attribute float a_PointSize;
+    void main() {
+      gl_Position = a_Position;
+      gl_PointSize = a_PointSize;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fShader">
+    precision mediump float;
+    uniform vec4 u_FragColor;
+    void main () {
+      gl_FragColor = vec4(0.4, 0.7, 0.5, 0.7);
+      //      gl_FragColor = u_FragColor;
+    }
+  </script>
+</head>
+
+<body style="margin: 0px;background-color: gainsboro">
+<canvas id="webgl" width="600" height="600"></canvas>
+
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/cuon-matrix.js"></script>
+<script src="../lib/helper.js"></script>
+
+<script>
+
+  function main() {
+    let gl = initGL();
+    let ANGLE = 0.0
+    let radian = Math.PI * ANGLE / 180.0
+    let cosB = Math.cos(radian)
+    let sinB = Math.sin(radian)
+    let xformMatrix = new Float32Array([
+      cosB, sinB, 0.0, 0.0,
+      -sinB, cosB, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0,
+    ])
+    let u_xformMatrix = gl.getUniformLocation(gl.program, 'u_xformMatrix')
+    gl.uniformMatrix4fv(u_xformMatrix, false, xformMatrix)
+
+    let xformMatrix_mat4 = new Matrix4()
+    // 绕着Z周轴旋转 +90°
+    xformMatrix_mat4.setRotate(90.0, 0, 0, 1)
+    gl.uniformMatrix4fv(u_xformMatrix, false, xformMatrix_mat4.elements)
+
+    let Sx = 0.1, Sy = 0.5, Sz = 1.0;
+    // 缩放用的变换矩阵(transformation matrix)
+    let xformMatrix_scale = new Float32Array([
+      Sx, 0.0, 0.0, 0.0,
+      0.0, Sy, 0.0, 0.0,
+      0.0, 0.0, Sz, 0.0,
+      0.0, 0.0, 0.0, 1.0,
+    ])
+
+    // 渲染器renderer 重新设置 背景色
+    gl.clearColor(0.5, 0.2, 0.2, 0.8)
+
+    // 清空<canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    // 顶点数据
+
+    let vertices = new Float32Array(
+      [0.0, 0.5, -0.5, 0.5, 0.5, -0.5]
+    )
+    let sizes = new Float32Array(
+      [10.0, 20.0, 30.0]
+    )
+
+    let n = initVertexBuffer(gl, vertices, sizes)
+
+    gl.drawArrays(gl.POINTS, 0, n)
+
+    console.log(gl)
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL context
+   * @param vertices{Float32Array} vertices
+   * @param PointSizes{Float32Array} sizes
+   */
+  function initVertexBuffer(gl, vertices, sizes) {
+    let n = Math.floor(vertices.length / 2);
+    // 创建webgl 顶点缓冲区
+    let vertexBuffer = gl.createBuffer();
+    // 大小缓冲
+    let sizeBuffer = gl.createBuffer();
+
+    // 并且绑定对象到缓冲区里
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    let a_Position = gl.getAttribLocation(gl.program, "a_Position");
+    // 把gl.ARRAY_BUFFER（vertexBuffer）缓冲区对象 分配给 location 指定的 attribute
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+    // 连接 a_Position 和 vertexBuffer，让 着色器 能够访问 绑定好了的bufferData
+    gl.enableVertexAttribArray(a_Position);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW);
+    let a_PointSize = gl.getAttribLocation(gl.program, "a_PointSize");
+    gl.vertexAttribPointer(a_PointSize, 1, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_PointSize);
+
+    return n;
+  }
+
+  main()
+
+</script>
+</body>
+
+</html>

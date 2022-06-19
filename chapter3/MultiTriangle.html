@@ -28,36 +28,15 @@
 <body style="margin: 0px;background-color: gainsboro">
 <canvas id="webgl" width="400" height="600"></canvas>
 
-<script src="../../lib/webgl-utils.js"></script>
-<script src="../../lib/webgl-debug.js"></script>
-<script src="../../lib/cuon-utils.js"></script>
-
-<!--<script src="js/HelloPoint.js"></script>-->
-
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/helper.js"></script>
 <script>
 
   function main() {
-    let canvas = document.getElementById('webgl')
-    let gl = getWebGLContext(canvas)
 
-
-    let Tx = 0.2;
-    let Ty = 0.2;
-    let Tz = 0.0;
-
-    if (!gl) {
-      console.log("failed to get rendering context for WebGL ..")
-    }
-
-    console.log("%c Rendering context for WebGL has been loaded!!", "color:black;background-color:skyblue", "")
-
-    let VSHADER_SOURCE = document.getElementById('vShader').innerText
-    let FSHADER_SOURCE = document.getElementById('fShader').innerText
-
-    if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-      console.log('Failed to init shaders')
-      return;
-    }
+    let gl = initGL()
 
     // 获取 aPos
     let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
@@ -72,6 +51,7 @@
     gl.uniform4f(u_FragColor, 0.4, 0.8, 0.2, 0.8)
 
     // 获取 u_Trans
+    var Tx = 0.5, Ty = 0.5, Tz = 0.0
     let u_Translation = gl.getUniformLocation(gl.program, 'u_Translation')
     gl.uniform4f(u_Translation, Tx, Ty, Tz, 0.0)
 
@@ -107,11 +87,11 @@
    */
   function initVertexBuffer(gl, vertices) {
     let n = Math.floor(vertices.length / 2)
-    // 创建webgl缓冲区
+    // 创建webgl 顶点缓冲区
     let vertexBuffer = gl.createBuffer();
     // 并且绑定对象到缓冲区里
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    // 绑定对象
+    // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
     let a_Position = gl.getAttribLocation(gl.program, 'a_Position')

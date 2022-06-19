@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="x-shader/x-vertex" id="vShader">
+    attribute vec4 a_Position;
+    attribute vec4 a_Color;
+    uniform mat4 u_ViewMatrix;
+    varying vec4 v_Color;
+    void main() {
+      gl_Position = u_ViewMatrix * a_Position;
+      v_Color = a_Color;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fShader">
+    precision mediump float;
+    // 再声明一遍，获取顶点着色器的varying的赋值
+    varying vec4 v_Color;
+    void main () {
+      // 2D 平面纹理的生成
+      gl_FragColor = v_Color;
+    }
+  </script>
+</head>
+
+<body style="margin: 0px;background-color: gainsboro">
+<canvas id="webgl" width="800" height="800"></canvas>
+
+
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/cuon-matrix.js"></script>
+<script src="../lib/helper.js"></script>
+
+<script>
+
+  var g_eyeX = 0.20;
+  var g_eyeY = 0.25;
+  var g_eyeZ = 0.25;
+
+  main();
+
+  function main() {
+
+
+    let gl = initGL()
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    // 渲染器renderer 重新设置 背景色
+    // gl.clearColor(1.0, 1.0, 0.0, 1.0)
+    // 视点
+
+    let u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix')
+    let viewMatrix = new Matrix4()
+    window.document.addEventListener('keydown', function ($event) {
+      keydown($event, gl, n, u_ViewMatrix, viewMatrix)
+    })
+
+    // 顶点、颜色 数据
+    let vertices = new Float32Array([
+      // Green Triangles
+      0.0, 0.5, -0.4, 0.4, 1.0, 0.4,
+      -0.5, -0.5, -0.4, 0.4, 1.0, 0.4,
+      0.5, -0.5, -0.4, 1.0, 0.4, 0.4,
+      // Yellow Triangles
+      0.5, 0.4, -0.2, 1.0, 0.4, 0.4,
+      -0.5, 0.4, -0.2, 1.0, 1.0, 0.4,
+      0.0, -0.6, -0.2, 1.0, 1.0, 0.4,
+      // Blue Triangles
+      0.0, 0.5, 0.0, 0.4, 0.4, 1.0,
+      -0.5, -0.5, 0.0, 0.4, 0.4, 1.0,
+      0.5, -0.5, 0.0, 1.0, 0.4, 0.4,
+    ])
+    var n = 9
+
+    initVertexBuffer(gl, vertices)
+    draw(gl, n, u_ViewMatrix, viewMatrix)
+  }
+
+  function keydown($event, gl, n, u_ViewMatrix, viewMatrix) {
+    // console.log('keydown:', $event.keyCode)
+    if ($event.keyCode == 39) {
+      g_eyeX += 0.01
+    } else if ($event.keyCode == 37) {
+      g_eyeX -= 0.01
+    } else {
+      return
+    }
+    // 绘制图形
+    draw(gl, n, u_ViewMatrix, viewMatrix)
+  }
+
+  function draw(gl, n, u_ViewMatrix, viewMatrix) {
+    // 重置视图矩阵(改动视点的X坐标)
+    viewMatrix.setLookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 0, 1)
+    // 让视图矩阵的新值作用于GLSL中
+    gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements)
+    // 清空 片元 色彩缓冲
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    // 开始绘制
+    gl.drawArrays(gl.TRIANGLES, 0, n)
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL renderer context
+   * @param vertices{Float32Array} vertices and texture coordinate
+   */
+  function initVertexBuffer(gl, vertices) {
+
+    // 创建webgl 纹理坐标 顶点缓冲区
+    let vertexTexCoordBuffer = gl.createBuffer();
+    // 并且绑定对象到缓冲区里
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer);
+    // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    let FLOATSIZE = vertices.BYTES_PER_ELEMENT;
+
+    // 位置 a_Position
+    let a_Position = gl.getAttribLocation(gl.program, "a_Position");
+
+    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FLOATSIZE * 6, 0);
+    gl.enableVertexAttribArray(a_Position);
+
+    // 色彩 vec3 a_Color
+    let a_Color = gl.getAttribLocation(gl.program, "a_Color")
+    // 加偏移量
+    gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FLOATSIZE * 6, FLOATSIZE * 3);
+    gl.enableVertexAttribArray(a_Color)
+
+  }
+
+</script>
+</body>
+
+</html>

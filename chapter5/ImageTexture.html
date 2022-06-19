@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="x-shader/x-vertex" id="vShader">
+    attribute vec4 a_Position;
+    attribute vec2 a_TexCoord;
+    varying vec2 v_TexCoord;
+    void main() {
+      gl_Position = a_Position;
+      // 把纹理坐标attribute变量 传递给 varying变量
+      v_TexCoord = a_TexCoord;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fShader">
+    precision mediump float;
+    // 声明一个取样器
+    uniform sampler2D u_Sampler;
+    // 再声明一遍，获取顶点着色器的varying的赋值
+    varying vec2 v_TexCoord;
+    void main () {
+      // 2D 平面纹理的生成
+      gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+    }
+  </script>
+</head>
+
+<body style="margin: 0px;background-color: gainsboro">
+<canvas id="webgl" width="800" height="800"></canvas>
+
+<script src="../lib/webgl-utils.js"></script>
+<script src="../lib/webgl-debug.js"></script>
+<script src="../lib/cuon-utils.js"></script>
+<script src="../lib/cuon-matrix.js"></script>
+<script src="../lib/helper.js"></script>
+
+<script>
+
+  main();
+
+  function main() {
+
+    let gl = initGL();
+
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    // 渲染器renderer 重新设置 背景色
+    gl.clearColor(1.0, 1.0, 0.0, 1.0);
+
+    // 清空<canvas>
+    // gl.clear(gl.COLOR_BUFFER_BIT)
+
+    // 顶点数据
+
+    let vertices = new Float32Array([
+      // 两个顶点坐标+ 两个纹理坐标 这样
+      -0.5, 0.5, 0.0, 1.0,
+      -0.5, -0.5, 0.0, 0.0,
+      0.5, 0.5, 1.0, 1.0,
+      0.5, -0.5, 1.0, 0.0,
+    ])
+
+    initVertexBuffer(gl, vertices)
+
+    if (!initTexture(gl, 4)) {
+
+    }
+
+
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL renderer context
+   * @param vertices{Float32Array} vertices and texture coordinate
+   */
+  function initVertexBuffer(gl, vertices) {
+
+    // 创建webgl 纹理坐标 顶点缓冲区
+    let vertexTexCoordBuffer = gl.createBuffer();
+    // 并且绑定对象到缓冲区里
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer);
+    // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    let FLOATSIZE = vertices.BYTES_PER_ELEMENT;
+
+    let a_Position = gl.getAttribLocation(gl.program, "a_Position");
+
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, FLOATSIZE * 4, 0);
+    gl.enableVertexAttribArray(a_Position);
+
+    let a_TexCoord = gl.getAttribLocation(gl.program, "a_TexCoord")
+    // 加偏移量
+    gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, FLOATSIZE * 4, FLOATSIZE * 2);
+    gl.enableVertexAttribArray(a_TexCoord)
+
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL renderer context
+   * @param n{Number} Number of Vertices
+   */
+  function initTexture(gl, n) {
+    let texture = gl.createTexture();
+    let u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler')
+    let image = new Image();
+    image.onload = function () {
+      loadTexture(gl, n, texture, u_Sampler, image)
+    }
+    image.src = '../resources/erha.jpg'
+    return true;
+  }
+
+  /**
+   * @param gl{WebGLRenderingContext} GL renderer context
+   * @param n{Number} Number of Vertices
+   * @param texture{WebGLTexture} texture
+   * @param sampler{Sampler2D} sampler for 2D Graphics
+   * @param image{Image} image object
+   */
+  function loadTexture(gl, n, texture, sampler, image) {
+    console.log('loadTexture', arguments)
+    // 翻转纹理的Y轴
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+    // 激活首个纹理单元
+    gl.activeTexture(gl.TEXTURE0)
+    // 绑定纹理元素 2D平铺式
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    // 配置纹理参数
+    // TEXTURE_2D / TEXTURE_CUBE
+    // gl.TEXTURE_MIN_FILTER gl.TEXTURE_MAG_FILTER / gl.TEXTURE_WRAP_S gl.TEXTURE_WRAP_T
+    // gl.LINEAR gl.NEAREST gl.REPEAT / gl.MIRRORED_REPEAT gl.CLAMP_TO_EDGE
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    // 配置纹理像素(Image对象)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image)
+    // 把0号纹理单元传递给着色器，也就是制定0给sampler的location
+    gl.uniform1i(sampler, 0)
+    // 绘制图形 LINE_LOOP
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, n)
+  }
+
+</script>
+</body>
+
+</html>
