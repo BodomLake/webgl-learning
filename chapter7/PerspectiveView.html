@@ -43,9 +43,9 @@
 
 <script>
 
-  var g_eyeX = 0.20;
-  var g_eyeY = 0.25;
-  var g_eyeZ = 0.25;
+  var g_eyeX = 0.00;
+  var g_eyeY = 0.00;
+  var g_eyeZ = 5.00;
 
   main();
 
@@ -80,18 +80,14 @@
       0.5, -0.5, 0.0, 1.0, 0.4, 0.4,
     ])
     var n = 9
-
-    /*    function setText() {
-          document.getElementById('nearFar').innerHTML = 'near:' + Math.round(g_near * 100) / 100 +
-            ', far: ' + Math.round(g_far * 100) / 100
-        }*/
     let gui = initDATGUI(gl, n, param)
 
     console.log(gui)
 
     window.document.addEventListener('keydown', function ($event) {
       keydown($event, gl, n, gui, param)
-    },  { passive:false})
+    }, {passive: false})
+
     initVertexBuffer(gl, vertices)
     draw(gl, n, gui, param)
   }
@@ -105,21 +101,21 @@
   function keydown($event, gl, n, gui, param) {
     // console.log('keydown:', $event.keyCode, g_near, g_far, param.projMatrix)
     let keyCode = $event.keyCode;
-    let orthoFarCtrl = gui.__folders['ortho'].__controllers[0]
-    let orthoNearCtrl = gui.__folders['ortho'].__controllers[1]
+    let farCtrl = gui.__folders['perspective'].__controllers[0]
+    let nearCtrl = gui.__folders['perspective'].__controllers[1]
     // console.log(gui)
     if (keyCode == 38) {
       // g_far += 0.01
-      orthoFarCtrl.setValue(orthoFarCtrl.getValue() + 0.01)
+      farCtrl.setValue(farCtrl.getValue() + 0.01)
     } else if (keyCode == 40) {
       // g_far -= 0.01
-      orthoFarCtrl.setValue(orthoFarCtrl.getValue() - 0.01)
+      farCtrl.setValue(farCtrl.getValue() - 0.01)
     } else if (keyCode == 39) {
       // g_near += 0.01
-      orthoNearCtrl.setValue(orthoNearCtrl.getValue() + 0.01)
+      nearCtrl.setValue(nearCtrl.getValue() + 0.01)
     } else if (keyCode == 37) {
       // g_near -= 0.01
-      orthoNearCtrl.setValue(orthoNearCtrl.getValue() - 0.01)
+      nearCtrl.setValue(nearCtrl.getValue() - 0.01)
     } else {
       return
     }
@@ -133,14 +129,24 @@
    * @param param{Object}   {u_ViewMatrix, viewMatrix, u_ProjMatrix, projMatrix}
    */
   function draw(gl, n, gui, {u_ViewMatrix, viewMatrix, u_ProjMatrix, projMatrix}) {
-    let orthoFarCtrl = gui.__folders['ortho'].__controllers[0]
-    let orthoNearCtrl = gui.__folders['ortho'].__controllers[1]
+    let farCtrl = gui.__folders['perspective'].__controllers[0]
+    let nearCtrl = gui.__folders['perspective'].__controllers[1]
+    let fovCtrl = gui.__folders['perspective'].__controllers[2]
+    let aspectCtrl = gui.__folders['perspective'].__controllers[3]
+
+    let eyeXCtrl = gui.__folders['eye'].__controllers[0]
+    let eyeYCtrl = gui.__folders['eye'].__controllers[1]
+    let eyeZCtrl = gui.__folders['eye'].__controllers[2]
+
     // 重置视图矩阵(改动视点的X坐标)
-    viewMatrix.setLookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 0, 1)
+    viewMatrix.setLookAt(
+      eyeXCtrl.getValue(), eyeYCtrl.getValue(), eyeZCtrl.getValue(), 0, 0, -100, 0, 1, 0
+    )
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements)
 
     // 重置投影矩阵(改动可视空间的远近)
-    projMatrix.setOrtho(-1.0, 1.0, -1.0, 1.0, orthoNearCtrl.getValue(), orthoFarCtrl.getValue())
+    // projMatrix.setOrtho(-1.0, 1.0, -1.0, 1.0, nearCtrl.getValue(), farCtrl.getValue())
+    projMatrix.setPerspective(fovCtrl.getValue(), aspectCtrl.getValue(), nearCtrl.getValue(), farCtrl.getValue())
     gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements)
 
     // 清空 片元 色彩缓冲
@@ -156,37 +162,42 @@
   function initVertexBuffer(gl, vertices) {
 
     // 创建webgl 纹理坐标 顶点缓冲区
-    let vertexTexCoordBuffer = gl.createBuffer();
+    let vertexTexCoordBuffer = gl.createBuffer()
     // 并且绑定对象到缓冲区里
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer)
     // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
-    let FLOATSIZE = vertices.BYTES_PER_ELEMENT;
+    let FLOATSIZE = vertices.BYTES_PER_ELEMENT
 
     // 位置 a_Position
-    let a_Position = gl.getAttribLocation(gl.program, "a_Position");
+    let a_Position = gl.getAttribLocation(gl.program, "a_Position")
 
-    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FLOATSIZE * 6, 0);
+    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FLOATSIZE * 6, 0)
     gl.enableVertexAttribArray(a_Position);
 
     // 色彩 vec3 a_Color
     let a_Color = gl.getAttribLocation(gl.program, "a_Color")
     // 加偏移量
-    gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FLOATSIZE * 6, FLOATSIZE * 3);
+    gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FLOATSIZE * 6, FLOATSIZE * 3)
     gl.enableVertexAttribArray(a_Color)
 
   }
 
   function initDATGUI(gl, n, param) {
 
+    let canvas = document.getElementById('webgl')
+    const wh_ratio = canvas.width / canvas.height
+
     const DataGUIOption = function () {
-      this.message = 'dat.gui';
-      this.g_eyeX = 0.20;
-      this.g_eyeY = 0.25;
-      this.g_eyeZ = 0.25;
-      this.g_far = 1.0;
-      this.g_near = 0.02;
+      this.message = 'dat.gui'
+      this.g_eyeX = 0.00
+      this.g_eyeY = 0.00
+      this.g_eyeZ = 5.00
+      this.fov = 30
+      this.aspect = wh_ratio
+      this.g_far = 100
+      this.g_near = 0.02
       this.button = function () {
       };
     };
@@ -196,30 +207,49 @@
     gui.open();
     gui.domElement.id = 'data.gui';
 
+    function painting() {
+      draw(gl, n, gui, param)
+    }
+
     let g_eye_folder = gui.addFolder('eye')
     // 文件夹控制器展开属下选项
     g_eye_folder.open()
     // option, propName, min, max, step
-    g_eye_folder.add(dataGUIOpt, 'g_eyeX', 0.05, 1.0, 0.01)
-    g_eye_folder.add(dataGUIOpt, 'g_eyeY', 0.05, 1.0, 0.01);
-    g_eye_folder.add(dataGUIOpt, 'g_eyeZ', 0.05, 1.0, 0.01);
+    g_eye_folder.add(dataGUIOpt, 'g_eyeX', 0.00, 1.00, 0.01).onChange(function (value) {
+      painting()
+    });
+    g_eye_folder.add(dataGUIOpt, 'g_eyeY', 0.00, 1.00, 0.01).onChange(function (value) {
+      painting()
+    });
+    g_eye_folder.add(dataGUIOpt, 'g_eyeZ', 2.00, 5.00, 0.1).onChange(function (value) {
+      painting()
+    });
 
-    let g_ortho_folder = gui.addFolder('ortho')
+    let g_perspective_folder = gui.addFolder('perspective')
     // 文件夹控制器展开属下选项
-    g_ortho_folder.open();
+    g_perspective_folder.open();
 
-    let orthoFarCtrl = g_ortho_folder.add(dataGUIOpt, 'g_far', 0.10, 1.00, 0.01);
-    orthoFarCtrl.onChange(function (value) {
-      // console.log("Fear onChange:" + Math.round(value * 100) / 100)
-      draw(gl, n, gui, param)
+    let farCtrl = g_perspective_folder.add(dataGUIOpt, 'g_far', 1.0, 100.0, 1);
+    farCtrl.onChange(function (value) {
+      painting()
     });
 
 
-    let orthoNearCtrl = g_ortho_folder.add(dataGUIOpt, 'g_near', 0.02, 0.95, 0.01);
-    orthoNearCtrl.onChange(function (value) {
-      // console.log("Near onChange:" + Math.round(value * 100) / 100)
-      draw(gl, n, gui, param)
+    let nearCtrl = g_perspective_folder.add(dataGUIOpt, 'g_near', 0.02, 0.95, 0.01);
+    nearCtrl.onChange(function (value) {
+      painting()
     });
+
+    let fovCtrl = g_perspective_folder.add(dataGUIOpt, 'fov', 1, 90, 1);
+    fovCtrl.onChange(function (value) {
+      painting()
+    });
+
+    let aspectCtrl = g_perspective_folder.add(dataGUIOpt, 'aspect', 0.01, 1.00, 0.01);
+    aspectCtrl.onChange(function (value) {
+      painting()
+    });
+
     return gui;
   }
 
