@@ -9,16 +9,10 @@
   <script type="x-shader/x-vertex" id="vShader">
     attribute vec4 a_Position;
     attribute vec4 a_Color;
-
-    //    uniform mat4 u_ViewMatrix;
-    //    uniform mat4 u_ProjMatrix;
-    //    uniform mat4 u_ModelMatrix;
-
     uniform mat4 u_MVP_Matrix;
 
     varying vec4 v_Color;
     void main() {
-      //      gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
       gl_Position = u_MVP_Matrix * a_Position;
       v_Color = a_Color;
     }
@@ -52,7 +46,11 @@
   function main() {
 
     let gl = initGL()
-
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    // 渲染器renderer 重新设置 背景色
+    gl.clearColor(0.0, 0.0, 0.0, 1.0)
+    gl.enable(gl.DEPTH_TEST)
+    // 视点
     let u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix')
     let u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix')
     let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix')
@@ -70,20 +68,26 @@
 
     // 顶点、颜色 数据
     let vertices = new Float32Array([
-      // Green Triangles
-      0.0, 0.5, -0.4, 0.4, 1.0, 0.4,
-      -0.5, -0.5, -0.4, 0.4, 1.0, 0.4,
-      0.5, -0.5, -0.4, 1.0, 0.4, 0.4,
-      // Yellow Triangles
-      0.5, 0.4, -0.2, 1.0, 0.4, 0.4,
-      -0.5, 0.4, -0.2, 1.0, 1.0, 0.4,
-      0.0, -0.6, -0.2, 1.0, 1.0, 0.4,
-      // Blue Triangles
-      0.0, 0.5, 0.0, 0.4, 0.4, 1.0,
-      -0.5, -0.5, 0.0, 0.4, 0.4, 1.0,
-      0.5, -0.5, 0.0, 1.0, 0.4, 0.4,
+      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, //v0 white 111
+      -1.0, 1.0, 1.0, 1.0, 0.0, 1.0, //v1 magenta 101
+      -1.0, -1.0, 1.0, 1.0, 0.0, 0.0, //v2 red 100
+      1.0, -1.0, 1.0, 0.0, 1.0, 1.0, //v3 cyan 011
+      1.0, -1.0, -1.0, 0.0, 0.0, 1.0, //v4 blue 001
+      1.0, 1.0, -1.0, 1.0, 1.0, 0.0, //v5 orange 110
+      -1.0, 1.0, -1.0, 0.0, 1.0, 0.0, //v6 green 010
+      -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, //v7 black 000
     ])
-    var n = 9
+
+    let indices = new Uint8Array([
+      0, 1, 2, 0, 2, 3,
+      0, 3, 4, 0, 4, 5,
+      0, 5, 6, 0, 6, 1,
+      1, 6, 7, 1, 7, 2,
+      7, 4, 3, 7, 3, 2,
+      4, 7, 6, 4, 6, 5,
+    ])
+
+    var n = indices.length
     let gui = initDATGUI(gl, n, param)
 
     console.log(gui)
@@ -92,7 +96,8 @@
       keydown($event, gl, n, gui, param)
     }, {passive: false})
 
-    initVertexBuffer(gl, vertices)
+    initVertexBuffer(gl, vertices, indices)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     draw(gl, n, gui, param)
   }
 
@@ -151,7 +156,7 @@
     let u_MVP_Matrix = gl.getUniformLocation(gl.program, 'u_MVP_Matrix')
     // 重置视图矩阵(改动视点的X坐标)
     viewMatrix.setLookAt(
-      eyeXCtrl.getValue(), eyeYCtrl.getValue(), eyeZCtrl.getValue(), 0, 0, -100, 0, 1, 0
+      eyeXCtrl.getValue(), eyeYCtrl.getValue(), eyeZCtrl.getValue(), 0, 0, 0, 0, 1, 0
     )
     // 投影矩阵
     projMatrix.setPerspective(
@@ -170,7 +175,7 @@
     gl.clear(gl.COLOR_BUFFER_BIT)
     // 开始绘制
     requestAnimationFrame(() => {
-      gl.drawArrays(gl.TRIANGLES, 0, n)
+      gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0)
     })
   }
 
@@ -178,12 +183,14 @@
    * @param gl{WebGLRenderingContext} GL renderer context
    * @param vertices{Float32Array} vertices and texture coordinate
    */
-  function initVertexBuffer(gl, vertices) {
+  function initVertexBuffer(gl, vertices, indices) {
 
     // 创建webgl 纹理坐标 顶点缓冲区
-    let vertexTexCoordBuffer = gl.createBuffer()
+    let vertexBuffer = gl.createBuffer()
+    // 顶点索引缓冲
+    let indexBuffer = gl.createBuffer()
     // 并且绑定对象到缓冲区里
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
     // 缓冲区对象(vertexBuffer)和顶点数据对象(vertices)相互绑定
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
@@ -201,6 +208,8 @@
     gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FLOATSIZE * 6, FLOATSIZE * 3)
     gl.enableVertexAttribArray(a_Color)
 
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
   }
 
   function initDATGUI(gl, n, param) {
@@ -210,16 +219,16 @@
 
     const DataGUIOption = function () {
       this.message = '三重矩阵影响顶点'
-      this.eyeX = 0.00
-      this.eyeY = 0.00
-      this.eyeZ = 5.00
-      this.Tx = 0.75
+      this.eyeX = 3.00
+      this.eyeY = 3.00
+      this.eyeZ = 7.00
+      this.Tx = 0.00
       this.Ty = 0.00
       this.Tz = 0.00
       this.fov = 30
       this.aspect = wh_ratio
       this.g_far = 100
-      this.g_near = 0.02
+      this.g_near = 1
       this.button = function () {
       };
     };
@@ -239,13 +248,13 @@
     // 文件夹控制器展开属下选项
     g_eye_folder.open()
     // option, propName, min, max, step
-    g_eye_folder.add(dataGUIOpt, 'eyeX', 0.00, 1.00, 0.01).onChange(function (value) {
+    g_eye_folder.add(dataGUIOpt, 'eyeX', 0.00, 10.00, 0.1).onChange(function (value) {
       painting()
     });
-    g_eye_folder.add(dataGUIOpt, 'eyeY', 0.00, 1.00, 0.01).onChange(function (value) {
+    g_eye_folder.add(dataGUIOpt, 'eyeY', 0.00, 10.00, 0.1).onChange(function (value) {
       painting()
     });
-    g_eye_folder.add(dataGUIOpt, 'eyeZ', 2.00, 5.00, 0.1).onChange(function (value) {
+    g_eye_folder.add(dataGUIOpt, 'eyeZ', 0.00, 10.00, 0.1).onChange(function (value) {
       painting()
     });
 
@@ -253,13 +262,13 @@
     // 文件夹控制器展开属下选项
     g_perspective_folder.open();
 
-    let farCtrl = g_perspective_folder.add(dataGUIOpt, 'g_far', 1.0, 100.0, 1);
+    let farCtrl = g_perspective_folder.add(dataGUIOpt, 'g_far', 1.00, 100.0, 1);
     farCtrl.onChange(function (value) {
       painting()
     });
 
 
-    let nearCtrl = g_perspective_folder.add(dataGUIOpt, 'g_near', 0.02, 0.95, 0.01);
+    let nearCtrl = g_perspective_folder.add(dataGUIOpt, 'g_near', 1.00, 100.00, 1);
     nearCtrl.onChange(function (value) {
       painting()
     });
